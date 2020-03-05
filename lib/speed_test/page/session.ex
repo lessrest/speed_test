@@ -318,6 +318,23 @@ defmodule SpeedTest.Page.Session do
     end
   end
 
+  @doc ~S"""
+
+  """
+  @impl true
+  def handle_call({:set_cookies, %{cookies: cookies}, options}, _from, %{pid: pid} = state) do
+    with {:ok, _result} <-
+           RPC.Network.setCookies(
+             pid,
+             %{
+               "cookies" => cookies
+             },
+             options
+           ) do
+      {:reply, :ok, state}
+    end
+  end
+
   @spec start_link(any, %{page: any}) :: :ignore | {:error, any} | {:ok, pid}
   def start_link(_, %{page: page}) do
     # Register the PID for this session

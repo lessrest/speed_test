@@ -7,6 +7,7 @@ defmodule SpeedTest do
 
   @timeout :timer.seconds(30)
 
+  alias SpeedTest.Cookie
   alias SpeedTest.Page.{Registry, Session, Supervisor}
 
   @doc ~S"""
@@ -108,6 +109,28 @@ defmodule SpeedTest do
     GenServer.call(
       server,
       {:wait_for_load, %{}, options},
+      options[:timeout] || @timeout
+    )
+  end
+
+  def set_cookie(server, %Cookie{} = cookie, options \\ []) do
+    GenServer.call(
+      server,
+      {:set_cookies,
+       %{
+         cookies: [
+           %{
+             name: cookie.name,
+             value: cookie.value,
+             url: cookie.url,
+             domain: cookie.domain,
+             path: cookie.path,
+             secure: cookie.secure,
+             httpOnly: cookie.httpOnly,
+             sameSite: cookie.sameSite
+           }
+         ]
+       }, options},
       options[:timeout] || @timeout
     )
   end
