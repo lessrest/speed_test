@@ -76,8 +76,6 @@ defmodule SpeedTestTest do
 
     {:ok, test_output} = page |> SpeedTest.get("#test-output")
 
-    page |> SpeedTest.screenshot(%{path: "./out.png"})
-
     assert SpeedTest.property(page, test_output, "innerHTML") == "Dummy Text"
   end
 end
