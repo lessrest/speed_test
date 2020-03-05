@@ -143,6 +143,7 @@ defmodule SpeedTest.Page.Session do
     end
   end
 
+  @impl true
   def handle_call({:get, %{selector: selector} = params, options}, _from, %{pid: pid} = state) do
     with {:ok, %{"result" => %{"root" => %{"nodeId" => root_node}}}} <-
            RPC.DOM.getDocument(pid, params, options),
@@ -158,6 +159,7 @@ defmodule SpeedTest.Page.Session do
     end
   end
 
+  @impl true
   def handle_call(
         {:focus, %{node_id: node_id}, options},
         _from,
@@ -169,6 +171,7 @@ defmodule SpeedTest.Page.Session do
     end
   end
 
+  @impl true
   def handle_call(
         {:type, %{node_id: node_id, text: text}, options},
         _from,
@@ -192,6 +195,7 @@ defmodule SpeedTest.Page.Session do
     end
   end
 
+  @impl true
   def handle_call(
         {:property, %{property: property, node_id: node_id}, options},
         _from,
@@ -216,6 +220,7 @@ defmodule SpeedTest.Page.Session do
     end
   end
 
+  @impl true
   def handle_call(
         {:attribute, %{node_id: node_id} = params, options},
         _from,
@@ -242,6 +247,7 @@ defmodule SpeedTest.Page.Session do
     end
   end
 
+  @impl true
   def handle_call(
         {:click, %{node_id: node_id}, options},
         _from,
@@ -269,6 +275,22 @@ defmodule SpeedTest.Page.Session do
     else
       nil ->
         {:reply, :notfound, state}
+    end
+  end
+
+  @impl true
+  def handle_call({:wait_for_load, %{}, options}, _from, %{pid: pid} = state) do
+    load_event = "Page.loadEventFired"
+
+    with :ok <- PageSession.subscribe(pid, load_event, options) do
+      receive do
+        {:chrome_remote_interface, ^load_event, _result} ->
+          :ok = PageSession.unsubscribe(pid, load_event)
+          {:reply, :ok, state}
+      after
+        @timeout ->
+          {:reply, {:error, :timeout}, state}
+      end
     end
   end
 

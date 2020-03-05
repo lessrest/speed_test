@@ -25,7 +25,8 @@ defmodule SpeedTest.MixProject do
       {:elixir_uuid, "~> 1.2"},
       {:chroxy, "~> 0.6.3"},
       {:chrome_remote_interface, "~> 0.4.1", override: true},
-      {:plug_cowboy, "~> 2.0.2", env: [:prod, :test], optional: false, override: true}
+      {:plug_cowboy, "~> 2.0.1"},
+      {:plug, "~> 1.7.2", override: true}
     ]
   end
 end

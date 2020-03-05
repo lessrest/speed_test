@@ -103,4 +103,12 @@ defmodule SpeedTest do
       options[:timeout] || @timeout
     )
   end
+
+  def wait_for_load(server, options \\ []) do
+    GenServer.call(
+      server,
+      {:wait_for_load, %{}, options},
+      options[:timeout] || @timeout
+    )
+  end
 end
