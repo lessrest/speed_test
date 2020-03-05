@@ -31,21 +31,45 @@ defmodule SpeedTest.Page.Session do
     {:ok, _data} = RPC.Profiler.enable(pid)
     {:ok, _data} = RPC.Security.enable(pid)
 
-    state = state |> Map.put(:pid, pid) |> Map.put(:page, page)
+    # Subscribe to page navigations
+    PageSession.subscribe(pid, "Page.frameNavigated")
+    # And general lifecycles
+    PageSession.subscribe(pid, "Page.lifecycleEvent")
+
+    state =
+      state
+      |> Map.put(:pid, pid)
+      |> Map.put(:page, page)
+      |> Map.put(:url, "")
+      |> Map.put(:main_frame, "")
 
     {:ok, state}
   end
+
+  @impl true
+  def handle_info(
+        {:chrome_remote_interface, "Page.frameNavigated",
+         %{"params" => %{"frame" => %{"id" => id, "url" => url}}}},
+        %{main_frame: main_frame} = state
+      )
+      when main_frame == id do
+    {:noreply, %{state | url: url}}
+  end
+
+  def handle_info({:chrome_remote_interface, "Page.frameNavigated", _}, state),
+    do: {:noreply, state}
 
   @impl true
   def handle_call({:visit, url, options}, _from, %{pid: pid} = state) do
     load_event = "Page.loadEventFired"
 
     with :ok <- PageSession.subscribe(pid, load_event),
-         {:ok, _data} <- RPC.Page.navigate(pid, %{url: url}, options) do
+         {:ok, %{"result" => %{"frameId" => main_frame}}} <-
+           RPC.Page.navigate(pid, %{url: url}, options) do
       receive do
         {:chrome_remote_interface, ^load_event, _result} ->
           :ok = PageSession.unsubscribe(pid, load_event)
-          {:reply, :ok, state}
+          {:reply, :ok, %{state | main_frame: main_frame}}
       after
         @timeout ->
           {:reply, {:error, :timeout}, state}
