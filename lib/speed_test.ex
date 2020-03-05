@@ -48,6 +48,14 @@ defmodule SpeedTest do
     GenServer.call(server, {:get, %{selector: selector}, options}, options[:timeout] || @timeout)
   end
 
+  def focus(server, node_id, options \\ []) do
+    GenServer.call(
+      server,
+      {:focus, %{node_id: node_id}, options},
+      options[:timeout] || @timeout
+    )
+  end
+
   def type(server, node_id, text, options \\ []) do
     GenServer.call(
       server,
@@ -56,10 +64,42 @@ defmodule SpeedTest do
     )
   end
 
-  def get_attribute(server, node_id, attribute, options \\ []) do
+  def value(server, node_id, options \\ []) do
     GenServer.call(
       server,
-      {:evaluate, %{node_id: node_id, attribute: attribute}, options},
+      {:property, %{node_id: node_id, property: "value"}, options},
+      options[:timeout] || @timeout
+    )
+  end
+
+  def property(server, node_id, property, options \\ []) do
+    GenServer.call(
+      server,
+      {:property, %{node_id: node_id, property: property}, options},
+      options[:timeout] || @timeout
+    )
+  end
+
+  def attributes(server, node_id, options \\ []) do
+    GenServer.call(
+      server,
+      {:attribute, %{node_id: node_id}, options},
+      options[:timeout] || @timeout
+    )
+  end
+
+  def attribute(server, node_id, attribute, options \\ []) do
+    GenServer.call(
+      server,
+      {:attribute, %{node_id: node_id, attribute: attribute}, options},
+      options[:timeout] || @timeout
+    )
+  end
+
+  def click(server, node_id, options \\ []) do
+    GenServer.call(
+      server,
+      {:click, %{node_id: node_id}, options},
       options[:timeout] || @timeout
     )
   end

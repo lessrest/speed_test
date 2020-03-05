@@ -39,9 +39,45 @@ defmodule SpeedTestTest do
   test "fills in inputs", %{page: page} do
     SpeedTest.goto(page, @dummy_site)
 
-    {:ok, login} = page |> SpeedTest.get("[data-test=login_email]")
-    :ok = SpeedTest.type(page, login, "testing@test.com")
+    {:ok, email_input} = page |> SpeedTest.get("[data-test=login_email]")
+    :ok = SpeedTest.type(page, email_input, "testing@test.com")
 
-    assert "testing@test.com" == SpeedTest.get_attribute(page, login, "value")
+    assert "testing@test.com" == SpeedTest.value(page, email_input)
+  end
+
+  test "gets arbitrary element properties", %{page: page} do
+    SpeedTest.goto(page, @dummy_site)
+
+    {:ok, email_input} = page |> SpeedTest.get("[data-test=login_email]")
+    assert SpeedTest.property(page, email_input, "type") == "email"
+  end
+
+  test "gets element attributes as map", %{page: page} do
+    SpeedTest.goto(page, @dummy_site)
+
+    {:ok, email_input} = page |> SpeedTest.get("[data-test=login_email]")
+    {:ok, attributes} = page |> SpeedTest.attributes(email_input)
+    assert attributes == %{"data-test" => "login_email", "name" => "test", "type" => "email"}
+  end
+
+  test "gets a single attribute for an element", %{page: page} do
+    SpeedTest.goto(page, @dummy_site)
+
+    {:ok, email_input} = page |> SpeedTest.get("[data-test=login_email]")
+    {:ok, attribute} = page |> SpeedTest.attribute(email_input, "name")
+    assert attribute == "test"
+  end
+
+  test "clicks on elements", %{page: page} do
+    SpeedTest.goto(page, @dummy_site)
+
+    {:ok, submit_button} = page |> SpeedTest.get("button")
+    :ok = page |> SpeedTest.click(submit_button)
+
+    {:ok, test_output} = page |> SpeedTest.get("#test-output")
+
+    page |> SpeedTest.screenshot(%{path: "./out.png"})
+
+    assert SpeedTest.property(page, test_output, "innerHTML") == "Dummy Text"
   end
 end

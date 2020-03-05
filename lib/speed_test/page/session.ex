@@ -159,6 +159,17 @@ defmodule SpeedTest.Page.Session do
   end
 
   def handle_call(
+        {:focus, %{node_id: node_id}, options},
+        _from,
+        %{pid: pid} = state
+      ) do
+    with {:ok, _result} <-
+           RPC.DOM.focus(pid, %{"nodeId" => node_id}, options) do
+      {:reply, :ok, state}
+    end
+  end
+
+  def handle_call(
         {:type, %{node_id: node_id, text: text}, options},
         _from,
         %{pid: pid} = state
@@ -182,7 +193,7 @@ defmodule SpeedTest.Page.Session do
   end
 
   def handle_call(
-        {:evaluate, %{attribute: attribute, node_id: node_id}, options},
+        {:property, %{property: property, node_id: node_id}, options},
         _from,
         %{pid: pid} = state
       ) do
@@ -196,8 +207,68 @@ defmodule SpeedTest.Page.Session do
              },
              options
            ),
-         %{"value" => %{"value" => value}} <- Enum.find(properties, &(&1["name"] == attribute)) do
+         %{"value" => %{"value" => value}} <-
+           Enum.find(properties, &(&1["name"] == property)) do
       {:reply, value, state}
+    else
+      nil ->
+        {:reply, :notfound, state}
+    end
+  end
+
+  def handle_call(
+        {:attribute, %{node_id: node_id} = params, options},
+        _from,
+        %{pid: pid} = state
+      ) do
+    with {:ok, %{"result" => %{"attributes" => attributes}}} <-
+           RPC.DOM.getAttributes(
+             pid,
+             %{
+               "nodeId" => node_id
+             },
+             options
+           ),
+         attributes <-
+           attributes
+           |> Enum.chunk_every(2)
+           |> Enum.into(%{}, fn [a, b] -> {a, b} end),
+         value <-
+           if(params[:attribute], do: attributes[params[:attribute]], else: attributes) do
+      {:reply, {:ok, value}, state}
+    else
+      nil ->
+        {:reply, :notfound, state}
+    end
+  end
+
+  def handle_call(
+        {:click, %{node_id: node_id}, options},
+        _from,
+        %{pid: pid} = state
+      ) do
+    with {:ok, %{"result" => %{"model" => %{"content" => [x, y | _rest]}}}} <-
+           RPC.DOM.getBoxModel(pid, %{"nodeId" => node_id}, options),
+         {:ok, _result} <-
+           RPC.Input.dispatchMouseEvent(pid, %{
+             "type" => "mousePressed",
+             "button" => "left",
+             "clickCount" => 1,
+             "x" => x,
+             "y" => y
+           }),
+         {:ok, _result} <-
+           RPC.Input.dispatchMouseEvent(pid, %{
+             "type" => "mouseReleased",
+             "button" => "left",
+             "clickCount" => 1,
+             "x" => x,
+             "y" => y
+           }) do
+      {:reply, :ok, state}
+    else
+      nil ->
+        {:reply, :notfound, state}
     end
   end
 

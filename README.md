@@ -1,6 +1,6 @@
 # SpeedTest
 
-**TODO: Add description**
+An integration testing framework focused on concurrency.
 
 ## Installation
 
@@ -19,3 +19,17 @@ Documentation can be generated with [ExDoc](https://github.com/elixir-lang/ex_do
 and published on [HexDocs](https://hexdocs.pm). Once published, the docs can
 be found at [https://hexdocs.pm/speed_test](https://hexdocs.pm/speed_test).
 
+### TODO
+Done? | Name
+:---:| ---
+✅| Navigation
+✅| Element Selection
+✅| Focus
+✅| Input
+✅| Input Values
+✅| Screenshots
+✅| PDFs
+✅| Attributes
+✅| Clicking
+⬜️| Runtime Evaluation
+⬜️| Request Interception
