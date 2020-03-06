@@ -4,7 +4,8 @@ defmodule SpeedTest.Cookie do
             url: "",
             domain: "",
             path: "/",
-            secure: true,
+            secure: false,
             httpOnly: true,
-            sameSite: "Lax"
+            sameSite: "None",
+            expires: 2_147_483_647
 end

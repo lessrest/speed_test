@@ -47,19 +47,6 @@ defmodule SpeedTest.Page.Session do
   end
 
   @impl true
-  def handle_info(
-        {:chrome_remote_interface, "Page.frameNavigated",
-         %{"params" => %{"frame" => %{"id" => id, "url" => url}}}},
-        %{main_frame: main_frame} = state
-      )
-      when main_frame == id do
-    {:noreply, %{state | url: url}}
-  end
-
-  def handle_info({:chrome_remote_interface, "Page.frameNavigated", _}, state),
-    do: {:noreply, state}
-
-  @impl true
   def handle_call({:visit, url, options}, _from, %{pid: pid} = state) do
     load_event = "Page.loadEventFired"
 
@@ -333,6 +320,94 @@ defmodule SpeedTest.Page.Session do
            ) do
       {:reply, :ok, state}
     end
+  end
+
+  @impl true
+  def handle_call({:url}, _from, %{url: url} = state) do
+    {:reply, url, state}
+  end
+
+  @impl true
+  def handle_call({:wait_for_url, %{url: expected} = params}, from, %{url: url} = state) do
+    timeout = params[:timeout] || :timer.seconds(3)
+    interval = params[:interval] || 100
+    max = round(timeout / interval)
+
+    if url != expected do
+      Process.send_after(
+        self(),
+        {:wait_for_url,
+         %{
+           from: from,
+           timeout: timeout,
+           interval: interval,
+           attempts: 1,
+           max: max,
+           expected: expected
+         }},
+        interval
+      )
+
+      {:noreply, state}
+    else
+      {:reply, :ok, state}
+    end
+  end
+
+  @impl true
+  def handle_info(
+        {:chrome_remote_interface, "Page.frameNavigated",
+         %{"params" => %{"frame" => %{"id" => id, "url" => url}}}},
+        %{main_frame: main_frame} = state
+      )
+      when main_frame == id do
+    {:noreply, %{state | url: url}}
+  end
+
+  def handle_info({:chrome_remote_interface, "Page.frameNavigated", _}, state),
+    do: {:noreply, state}
+
+  @impl true
+  def handle_info(
+        {:wait_for_url,
+         %{
+           from: from,
+           timeout: timeout,
+           interval: interval,
+           attempts: attempts,
+           max: max,
+           expected: expected
+         }},
+        %{url: url} = state
+      )
+      when url != expected do
+    if attempts >= max do
+      GenServer.reply(from, {:error, :timeout})
+    else
+      Process.send_after(
+        self(),
+        {:wait_for_url,
+         %{
+           from: from,
+           timeout: timeout,
+           interval: interval,
+           attempts: attempts + 1,
+           max: max,
+           expected: expected
+         }},
+        interval
+      )
+    end
+
+    {:noreply, state}
+  end
+
+  def handle_info(
+        {:wait_for_url, %{from: from}},
+        state
+      ) do
+    GenServer.reply(from, :ok)
+    {:noreply, state}
   end
 
   @spec start_link(any, %{page: any}) :: :ignore | {:error, any} | {:ok, pid}

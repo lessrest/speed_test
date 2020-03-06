@@ -113,6 +113,14 @@ defmodule SpeedTest do
     )
   end
 
+  def wait_for_url(server, url, options \\ []) do
+    GenServer.call(
+      server,
+      {:wait_for_url, %{url: url}},
+      options[:timeout] || @timeout
+    )
+  end
+
   def set_cookie(server, %Cookie{} = cookie, options \\ []) do
     GenServer.call(
       server,
@@ -127,10 +135,19 @@ defmodule SpeedTest do
              path: cookie.path,
              secure: cookie.secure,
              httpOnly: cookie.httpOnly,
-             sameSite: cookie.sameSite
+             sameSite: cookie.sameSite,
+             expires: cookie.expires
            }
          ]
        }, options},
+      options[:timeout] || @timeout
+    )
+  end
+
+  def current_url(server, options \\ []) do
+    GenServer.call(
+      server,
+      {:url},
       options[:timeout] || @timeout
     )
   end

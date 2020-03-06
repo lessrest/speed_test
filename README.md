@@ -31,7 +31,7 @@ Done? | Name
 ✅| PDFs
 ✅| Attributes
 ✅| Clicking
-⬜️| URL
-⬜️| Cookies
+✅| URL
+✅| Cookies
 ⬜️| Runtime Evaluation
 ⬜️| Request Interception
