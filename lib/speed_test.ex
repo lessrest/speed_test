@@ -85,6 +85,14 @@ defmodule SpeedTest do
     )
   end
 
+  def text(server, node_id, options \\ []) do
+    GenServer.call(
+      server,
+      {:property, %{node_id: node_id, property: "textContent"}, options},
+      options[:timeout] || @timeout
+    )
+  end
+
   def attributes(server, node_id, options \\ []) do
     GenServer.call(
       server,
