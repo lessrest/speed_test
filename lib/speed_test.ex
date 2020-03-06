@@ -48,7 +48,8 @@ defmodule SpeedTest do
   def get(server, selector, options \\ []) do
     GenServer.call(
       server,
-      {:get, %{selector: selector, retry: options[:retry] || %Retry{}}, options},
+      {:get, %{selector: selector, retry: options[:retry] || %Retry{}},
+       Keyword.delete(options, :retry)},
       options[:timeout] || @timeout
     )
   end
