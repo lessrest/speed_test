@@ -155,19 +155,32 @@ defmodule SpeedTest.Page.Session do
   end
 
   @impl true
-  def handle_call({:get, %{selector: selector} = params, options}, _from, %{pid: pid} = state) do
-    with {:ok, %{"result" => %{"root" => %{"nodeId" => root_node}}}} <-
-           RPC.DOM.getDocument(pid, params, options),
-         {:ok, %{"result" => %{"nodeId" => id}}} <-
-           RPC.DOM.querySelector(pid, %{"nodeId" => root_node, "selector" => selector}, options) do
-      case id do
-        0 ->
-          {:reply, {:error, :notfound}, state}
+  def handle_call({:get, %{retry: retry} = params, options}, from, state) do
+    Process.send_after(
+      self(),
+      {:retry, Map.put(params, :from, from),
+       fn %{selector: selector}, %{pid: pid} ->
+         with {:ok, %{"result" => %{"root" => %{"nodeId" => root_node}}}} <-
+                RPC.DOM.getDocument(pid, options),
+              {:ok, %{"result" => %{"nodeId" => id}}} <-
+                RPC.DOM.querySelector(
+                  pid,
+                  %{"nodeId" => root_node, "selector" => selector},
+                  options
+                ) do
+           case id do
+             0 ->
+               {:error, :notfound}
 
-        id ->
-          {:reply, {:ok, id}, state}
-      end
-    end
+             id ->
+               {:ok, {:ok, id}}
+           end
+         end
+       end},
+      retry.interval
+    )
+
+    {:noreply, state}
   end
 
   @impl true
@@ -328,30 +341,21 @@ defmodule SpeedTest.Page.Session do
   end
 
   @impl true
-  def handle_call({:wait_for_url, %{url: expected} = params}, from, %{url: url} = state) do
-    timeout = params[:timeout] || :timer.seconds(3)
-    interval = params[:interval] || 100
-    max = round(timeout / interval)
+  def handle_call(
+        {:wait_for_url, %{retry: retry} = params},
+        from,
+        state
+      ) do
+    Process.send_after(
+      self(),
+      {:retry, Map.put(params, :from, from),
+       fn params, state ->
+         if params.url == state.url, do: {:ok, :ok}, else: {:error, false}
+       end},
+      retry.interval
+    )
 
-    if url != expected do
-      Process.send_after(
-        self(),
-        {:wait_for_url,
-         %{
-           from: from,
-           timeout: timeout,
-           interval: interval,
-           attempts: 1,
-           max: max,
-           expected: expected
-         }},
-        interval
-      )
-
-      {:noreply, state}
-    else
-      {:reply, :ok, state}
-    end
+    {:noreply, state}
   end
 
   @impl true
@@ -369,44 +373,33 @@ defmodule SpeedTest.Page.Session do
 
   @impl true
   def handle_info(
-        {:wait_for_url,
+        {:retry,
          %{
            from: from,
-           timeout: timeout,
-           interval: interval,
-           attempts: attempts,
-           max: max,
-           expected: expected
-         }},
-        %{url: url} = state
-      )
-      when url != expected do
-    if attempts >= max do
-      GenServer.reply(from, {:error, :timeout})
-    else
-      Process.send_after(
-        self(),
-        {:wait_for_url,
-         %{
-           from: from,
-           timeout: timeout,
-           interval: interval,
-           attempts: attempts + 1,
-           max: max,
-           expected: expected
-         }},
-        interval
-      )
-    end
-
-    {:noreply, state}
-  end
-
-  def handle_info(
-        {:wait_for_url, %{from: from}},
+           retry: %{attempts: attempts, max: max} = retry
+         } = params, function},
         state
       ) do
-    GenServer.reply(from, :ok)
+    case function.(params, state) do
+      {:ok, result} ->
+        GenServer.reply(from, result)
+
+      _anything when attempts >= max ->
+        GenServer.reply(from, {:error, :timeout})
+
+      _ ->
+        Process.send_after(
+          self(),
+          {:retry,
+           %{
+             params
+             | from: from,
+               retry: %{retry | attempts: retry.attempts + 1}
+           }, function},
+          retry.interval
+        )
+    end
+
     {:noreply, state}
   end
 

@@ -7,7 +7,7 @@ defmodule SpeedTest do
 
   @timeout :timer.seconds(30)
 
-  alias SpeedTest.Cookie
+  alias SpeedTest.{Cookie, Retry}
   alias SpeedTest.Page.{Registry, Session, Supervisor}
 
   @doc ~S"""
@@ -46,7 +46,11 @@ defmodule SpeedTest do
   end
 
   def get(server, selector, options \\ []) do
-    GenServer.call(server, {:get, %{selector: selector}, options}, options[:timeout] || @timeout)
+    GenServer.call(
+      server,
+      {:get, %{selector: selector, retry: options[:retry] || %Retry{}}, options},
+      options[:timeout] || @timeout
+    )
   end
 
   def focus(server, node_id, options \\ []) do
@@ -116,7 +120,7 @@ defmodule SpeedTest do
   def wait_for_url(server, url, options \\ []) do
     GenServer.call(
       server,
-      {:wait_for_url, %{url: url}},
+      {:wait_for_url, %{url: url, retry: options[:retry] || %Retry{}}},
       options[:timeout] || @timeout
     )
   end
