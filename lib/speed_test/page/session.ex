@@ -212,12 +212,19 @@ defmodule SpeedTest.Page.Session do
          results <-
            characters
            |> Enum.map(fn char ->
-             RPC.Input.dispatchKeyEvent(pid, %{
-               "text" => char,
-               "unmodifiedText" => char,
-               "key" => char,
-               "type" => "keyDown"
-             })
+             params =
+               case grapheme_to_key(char) do
+                 {:raw, code} ->
+                   code
+
+                 {:text, t} ->
+                   %{
+                     "text" => t
+                   }
+               end
+
+             RPC.Input.dispatchKeyEvent(pid, Map.put(params, "type", "keyDown"))
+             RPC.Input.dispatchKeyEvent(pid, Map.put(params, "type", "keyUp"))
            end),
          true <- Enum.all?(results, fn {result, _} -> result == :ok end) do
       {:reply, :ok, state}
@@ -278,7 +285,7 @@ defmodule SpeedTest.Page.Session do
 
   @impl true
   def handle_call(
-        {:click, %{node_id: node_id}, options},
+        {:click, %{node_id: node_id} = params, options},
         _from,
         %{pid: pid} = state
       ) do
@@ -288,7 +295,7 @@ defmodule SpeedTest.Page.Session do
            RPC.Input.dispatchMouseEvent(pid, %{
              "type" => "mousePressed",
              "button" => "left",
-             "clickCount" => 1,
+             "clickCount" => params[:click_count] || 1,
              "x" => x,
              "y" => y
            }),
@@ -296,7 +303,7 @@ defmodule SpeedTest.Page.Session do
            RPC.Input.dispatchMouseEvent(pid, %{
              "type" => "mouseReleased",
              "button" => "left",
-             "clickCount" => 1,
+             "clickCount" => params[:click_count] || 1,
              "x" => x,
              "y" => y
            }) do
@@ -506,4 +513,9 @@ defmodule SpeedTest.Page.Session do
     |> PageSession.start_link()
     |> elem(1)
   end
+
+  defp grapheme_to_key(~s"\b"),
+    do: {:raw, %{windowsVirtualKeyCode: 8, code: "Backspace", key: "Backspace"}}
+
+  defp grapheme_to_key(key), do: {:text, key}
 end

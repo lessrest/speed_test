@@ -110,7 +110,17 @@ defmodule SpeedTest do
     )
   end
 
-  def click(server, node_id, options \\ []) do
+  def click(server, node_id, params \\ %{}, options \\ [])
+
+  def click(server, node_id, %{click_count: count}, options) do
+    GenServer.call(
+      server,
+      {:click, %{node_id: node_id, click_count: count}, options},
+      options[:timeout] || @timeout
+    )
+  end
+
+  def click(server, node_id, _params, options) do
     GenServer.call(
       server,
       {:click, %{node_id: node_id}, options},
@@ -171,5 +181,14 @@ defmodule SpeedTest do
       {:network, %{url: url, method: String.upcase(method), retry: options[:retry] || %Retry{}}},
       options[:timeout] || @timeout
     )
+  end
+
+  def clear(server, node, options \\ []) do
+    with :ok <- server |> click(node, %{click_count: 3}, options),
+         :ok <-
+           server
+           |> type(node, "\b", options) do
+      :ok
+    end
   end
 end

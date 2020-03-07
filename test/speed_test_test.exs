@@ -45,6 +45,19 @@ defmodule SpeedTestTest do
     assert "testing@test.com" == SpeedTest.value(page, email_input)
   end
 
+  test "clears inputs", %{page: page} do
+    SpeedTest.goto(page, @dummy_site)
+
+    {:ok, email_input} = page |> SpeedTest.get("[data-test=login_email]")
+    :ok = SpeedTest.type(page, email_input, "testing@test.com")
+
+    assert "testing@test.com" == SpeedTest.value(page, email_input)
+
+    :ok = page |> SpeedTest.clear(email_input)
+
+    assert "" == SpeedTest.value(page, email_input)
+  end
+
   test "gets arbitrary element properties", %{page: page} do
     SpeedTest.goto(page, @dummy_site)
 
