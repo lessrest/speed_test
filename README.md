@@ -34,4 +34,4 @@ Done? | Name
 ✅| URL
 ✅| Cookies
 ⬜️| Runtime Evaluation
-⬜️| Request Interception
+✅| Request Interception
