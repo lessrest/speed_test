@@ -3,4 +3,8 @@ defmodule SpeedTest.Retry do
             interval: 100,
             max: round(:timer.seconds(3) / 100),
             attempts: 0
+
+  def calc_max(%__MODULE__{} = retry) do
+    round(retry.timeout / retry.interval)
+  end
 end

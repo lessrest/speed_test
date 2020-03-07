@@ -7,6 +7,7 @@ defmodule SpeedTest.Page.Session do
   require Logger
 
   alias ChromeRemoteInterface.{HTTP, PageSession, RPC, Server}
+  alias SpeedTest.Retry
   alias SpeedTest.Page.Registry
 
   @chrome_server %Server{host: "localhost", port: 1330}
@@ -465,10 +466,12 @@ defmodule SpeedTest.Page.Session do
         {:retry,
          %{
            from: from,
-           retry: %{attempts: attempts, max: max} = retry
+           retry: %{attempts: attempts} = retry
          } = params, function},
         state
       ) do
+    max = Retry.calc_max(retry)
+
     case function.(params, state) do
       {:ok, result} ->
         GenServer.reply(from, result)
