@@ -11,6 +11,7 @@ defmodule SpeedTest.Page.Session do
 
   @chrome_server %Server{host: "localhost", port: 1330}
   @timeout :timer.seconds(30)
+  @base_url Application.get_env(:speed_test, :base_url) || ""
 
   # Client functions
 
@@ -35,6 +36,9 @@ defmodule SpeedTest.Page.Session do
     PageSession.subscribe(pid, "Page.frameNavigated")
     # And general lifecycles
     PageSession.subscribe(pid, "Page.lifecycleEvent")
+    # And Network events
+    PageSession.subscribe(pid, "Network.requestWillBeSent")
+    PageSession.subscribe(pid, "Network.responseReceived")
 
     state =
       state
@@ -42,6 +46,7 @@ defmodule SpeedTest.Page.Session do
       |> Map.put(:page, page)
       |> Map.put(:url, "")
       |> Map.put(:main_frame, "")
+      |> Map.put(:network_requests, %{})
 
     {:ok, state}
   end
@@ -52,7 +57,7 @@ defmodule SpeedTest.Page.Session do
 
     with :ok <- PageSession.subscribe(pid, load_event),
          {:ok, %{"result" => %{"frameId" => main_frame}}} <-
-           RPC.Page.navigate(pid, %{url: url}, options) do
+           RPC.Page.navigate(pid, %{url: "#{@base_url}#{url}"}, options) do
       receive do
         {:chrome_remote_interface, ^load_event, _result} ->
           :ok = PageSession.unsubscribe(pid, load_event)
@@ -350,7 +355,36 @@ defmodule SpeedTest.Page.Session do
       self(),
       {:retry, Map.put(params, :from, from),
        fn params, state ->
-         if params.url == state.url, do: {:ok, :ok}, else: {:error, false}
+         if "#{@base_url}#{params.url}" == state.url, do: {:ok, :ok}, else: {:error, false}
+       end},
+      retry.interval
+    )
+
+    {:noreply, state}
+  end
+
+  @impl true
+  def handle_call(
+        {:network, %{retry: retry} = params},
+        from,
+        state
+      ) do
+    Process.send_after(
+      self(),
+      {:retry, Map.put(params, :from, from),
+       fn %{url: url, method: method}, %{network_requests: network_requests} ->
+         found? =
+           network_requests
+           |> Map.values()
+           |> Enum.find(fn %{"request" => request} ->
+             request["method"] == method and
+               String.contains?(request["url"], "#{@base_url}#{url}")
+           end)
+
+         case not is_nil(found?) do
+           true -> {:ok, {:ok, found?}}
+           _ -> {:error, :notfound}
+         end
        end},
       retry.interval
     )
@@ -360,12 +394,60 @@ defmodule SpeedTest.Page.Session do
 
   @impl true
   def handle_info(
+        {:chrome_remote_interface, "Network.responseReceived",
+         %{
+           "params" => %{
+             "frameId" => frame_id,
+             "requestId" => request_id,
+             "response" => response
+           }
+         }},
+        %{main_frame: main_frame} = state
+      )
+      when main_frame == frame_id do
+    {:noreply, put_in(state, [:network_requests, request_id, "response"], response)}
+  end
+
+  def handle_info({:chrome_remote_interface, "Network.responseReceived", _params}, state),
+    do: {:noreply, state}
+
+  @impl true
+  def handle_info(
+        {:chrome_remote_interface, "Network.requestWillBeSent",
+         %{
+           "params" => %{
+             "frameId" => frame_id,
+             "requestId" => request_id,
+             "request" => request,
+             "type" => type
+           }
+         }},
+        %{main_frame: main_frame, network_requests: network_requests} = state
+      )
+      when frame_id == main_frame do
+    {:noreply,
+     %{
+       state
+       | network_requests:
+           Map.put(network_requests, request_id, %{
+             "response" => %{},
+             "request" => request,
+             "type" => type
+           })
+     }}
+  end
+
+  def handle_info({:chrome_remote_interface, "Network.requestWillBeSent", _params}, state),
+    do: {:noreply, state}
+
+  @impl true
+  def handle_info(
         {:chrome_remote_interface, "Page.frameNavigated",
          %{"params" => %{"frame" => %{"id" => id, "url" => url}}}},
         %{main_frame: main_frame} = state
       )
       when main_frame == id do
-    {:noreply, %{state | url: url}}
+    {:noreply, %{state | url: url, network_requests: %{}}}
   end
 
   def handle_info({:chrome_remote_interface, "Page.frameNavigated", _}, state),

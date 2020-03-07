@@ -164,4 +164,12 @@ defmodule SpeedTest do
       options[:timeout] || @timeout
     )
   end
+
+  def intercept_request(server, method, url, options \\ []) do
+    GenServer.call(
+      server,
+      {:network, %{url: url, method: String.upcase(method), retry: options[:retry] || %Retry{}}},
+      options[:timeout] || @timeout
+    )
+  end
 end
