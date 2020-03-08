@@ -1,4 +1,7 @@
 defmodule SpeedTest.Cookie do
+  @moduledoc """
+  Struct that represents HTTP cookies
+  """
   defstruct name: "",
             value: "",
             url: "",

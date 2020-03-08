@@ -28,7 +28,9 @@ defmodule SpeedTest.MixProject do
       {:chroxy, "~> 0.6.3"},
       {:chrome_remote_interface, "~> 0.3.0"},
       {:plug_cowboy, "~> 2.0.1"},
-      {:plug, "~> 1.8.0"}
+      {:plug, "~> 1.8.0"},
+      {:ex_doc, ">= 0.0.0", only: :dev, runtime: false},
+      {:credo, "~> 1.2", only: [:dev, :test], runtime: false}
     ]
   end
 

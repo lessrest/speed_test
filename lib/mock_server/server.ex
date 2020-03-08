@@ -1,4 +1,7 @@
 defmodule Test.Support.MockServer do
+  @moduledoc """
+  A mock server for running tests against
+  """
   use Plug.Router
 
   plug(:match)

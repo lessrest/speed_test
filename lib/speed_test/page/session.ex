@@ -7,8 +7,8 @@ defmodule SpeedTest.Page.Session do
   require Logger
 
   alias ChromeRemoteInterface.{HTTP, PageSession, RPC, Server}
-  alias SpeedTest.Retry
   alias SpeedTest.Page.Registry
+  alias SpeedTest.Retry
 
   @chrome_server %Server{host: "localhost", port: 1330}
   @timeout :timer.seconds(30)
@@ -289,7 +289,7 @@ defmodule SpeedTest.Page.Session do
   def handle_call(
         {:click, %{node_id: node_id} = params, options},
         _from,
-        %{pid: pid, mouse_position: {mX, mY}} = state
+        %{pid: pid, mouse_position: {mx, my}} = state
       ) do
     click_count = params[:click_count] || 1
 
@@ -301,8 +301,8 @@ defmodule SpeedTest.Page.Session do
            |> RPC.Input.dispatchMouseEvent(%{
              "type" => "mouseMoved",
              "button" => "left",
-             "x" => mX + (x - mX),
-             "y" => mY + (y - mY)
+             "x" => mx + (x - mx),
+             "y" => my + (y - my)
            }),
          {:ok, _result} <-
            RPC.Input.dispatchMouseEvent(pid, %{
