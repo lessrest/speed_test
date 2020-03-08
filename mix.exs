@@ -9,8 +9,7 @@ defmodule SpeedTest.MixProject do
       elixir: "~> 1.9",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
-      licenses: ["MIT"],
-      links: %{"Github" => "https://github.com/nathanjohnson320/speed_test"}
+      package: package()
     ]
   end
 
@@ -30,6 +29,13 @@ defmodule SpeedTest.MixProject do
       {:chrome_remote_interface, "~> 0.3.0"},
       {:plug_cowboy, "~> 2.0.1"},
       {:plug, "~> 1.8.0"}
+    ]
+  end
+
+  defp package() do
+    [
+      licenses: ["MIT"],
+      links: %{"Github" => "https://github.com/nathanjohnson320/speed_test"}
     ]
   end
 end
