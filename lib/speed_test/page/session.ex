@@ -48,6 +48,7 @@ defmodule SpeedTest.Page.Session do
       |> Map.put(:url, "")
       |> Map.put(:main_frame, "")
       |> Map.put(:network_requests, %{})
+      |> Map.put(:mouse_position, {0, 0})
 
     {:ok, state}
   end
@@ -288,15 +289,26 @@ defmodule SpeedTest.Page.Session do
   def handle_call(
         {:click, %{node_id: node_id} = params, options},
         _from,
-        %{pid: pid} = state
+        %{pid: pid, mouse_position: {mX, mY}} = state
       ) do
-    with {:ok, %{"result" => %{"model" => %{"content" => [x, y | _rest]}}}} <-
+    click_count = params[:click_count] || 1
+
+    with {:ok, %{"result" => %{"model" => %{"content" => quad}}}} <-
            RPC.DOM.getBoxModel(pid, %{"nodeId" => node_id}, options),
+         {:ok, {x, y}} <- calculate_center(quad),
+         {:ok, _result} <-
+           pid
+           |> RPC.Input.dispatchMouseEvent(%{
+             "type" => "mouseMoved",
+             "button" => "left",
+             "x" => mX + (x - mX),
+             "y" => mY + (y - mY)
+           }),
          {:ok, _result} <-
            RPC.Input.dispatchMouseEvent(pid, %{
              "type" => "mousePressed",
              "button" => "left",
-             "clickCount" => params[:click_count] || 1,
+             "clickCount" => click_count,
              "x" => x,
              "y" => y
            }),
@@ -304,11 +316,11 @@ defmodule SpeedTest.Page.Session do
            RPC.Input.dispatchMouseEvent(pid, %{
              "type" => "mouseReleased",
              "button" => "left",
-             "clickCount" => params[:click_count] || 1,
+             "clickCount" => click_count,
              "x" => x,
              "y" => y
            }) do
-      {:reply, :ok, state}
+      {:reply, :ok, %{state | mouse_position: {x, y}}}
     else
       nil ->
         {:reply, :notfound, state}
@@ -521,4 +533,11 @@ defmodule SpeedTest.Page.Session do
     do: {:raw, %{windowsVirtualKeyCode: 8, code: "Backspace", key: "Backspace"}}
 
   defp grapheme_to_key(key), do: {:text, key}
+
+  defp calculate_center([x1, y1, x2, y2, x3, y3, x4, y4]) do
+    x = (x1 + x2 + x3 + x4) / 4
+    y = (y1 + y2 + y3 + y4) / 4
+
+    {:ok, {round(x), round(y)}}
+  end
 end
