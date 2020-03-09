@@ -35,3 +35,7 @@ Done? | Name
 ✅| Cookies
 ⬜️| Runtime Evaluation
 ✅| Request Interception
+
+## Tests
+
+`SPEED_TEST_MOCKS=true mix test` To run the speed test unit tests
