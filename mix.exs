@@ -9,7 +9,8 @@ defmodule SpeedTest.MixProject do
       elixir: "~> 1.9",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
-      package: package()
+      package: package(),
+      docs: [main: "usage", extras: ["README.md", "guides/usage.md"]]
     ]
   end
 

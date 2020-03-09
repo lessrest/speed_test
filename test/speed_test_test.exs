@@ -2,93 +2,93 @@ defmodule SpeedTestTest do
   use ExUnit.Case, async: true
   doctest SpeedTest
 
-  @dummy_site "http://localhost:8081/"
+  import SpeedTest
 
   setup do
-    page = SpeedTest.launch()
-    SpeedTest.dimensions(page, %{width: 1920, height: 1080})
+    page = launch()
+    dimensions(page, %{width: 1920, height: 1080})
 
     [page: page]
   end
 
   test "opens a new page" do
-    page = SpeedTest.launch()
+    page = launch()
     assert is_pid(page)
   end
 
   test "navigates to a website", %{page: page} do
-    assert :ok == SpeedTest.goto(page, @dummy_site)
+    assert :ok == goto(page, "/")
   end
 
   test "takes screenshots", %{page: page} do
-    SpeedTest.goto(page, @dummy_site)
-    png = SpeedTest.screenshot(page)
+    goto(page, "/")
+    {:ok, png} = screenshot(page)
 
     assert png |> is_binary()
     assert String.length(png) > 0
   end
 
   test "returns pdfs", %{page: page} do
-    SpeedTest.goto(page, @dummy_site)
-    png = SpeedTest.pdf(page)
+    goto(page, "/")
+    {:ok, pdf} = pdf(page)
 
-    assert png |> is_binary()
-    assert String.length(png) > 0
+    assert pdf |> is_binary()
+    assert String.length(pdf) > 0
   end
 
   test "fills in inputs", %{page: page} do
-    SpeedTest.goto(page, @dummy_site)
+    goto(page, "/")
 
-    {:ok, email_input} = page |> SpeedTest.get("[data-test=login_email]")
-    :ok = SpeedTest.type(page, email_input, "testing@test.com")
+    {:ok, email_input} = page |> get("[data-test=login_email]")
+    :ok = type(page, email_input, "testing@test.com")
 
-    assert "testing@test.com" == SpeedTest.value(page, email_input)
+    assert {:ok, "testing@test.com"} == value(page, email_input)
   end
 
   test "clears inputs", %{page: page} do
-    SpeedTest.goto(page, @dummy_site)
+    goto(page, "/")
 
-    {:ok, email_input} = page |> SpeedTest.get("[data-test=login_email]")
-    :ok = SpeedTest.type(page, email_input, "testing@test.com")
+    {:ok, email_input} = page |> get("[data-test=login_email]")
+    :ok = type(page, email_input, "testing@test.com")
 
-    assert "testing@test.com" == SpeedTest.value(page, email_input)
+    assert {:ok, "testing@test.com"} == value(page, email_input)
 
-    :ok = page |> SpeedTest.clear(email_input)
+    :ok = page |> clear(email_input)
 
-    assert "" == SpeedTest.value(page, email_input)
+    assert {:ok, ""} == value(page, email_input)
   end
 
   test "gets arbitrary element properties", %{page: page} do
-    SpeedTest.goto(page, @dummy_site)
+    goto(page, "/")
 
-    {:ok, email_input} = page |> SpeedTest.get("[data-test=login_email]")
-    assert SpeedTest.property(page, email_input, "type") == "email"
+    {:ok, email_input} = page |> get("[data-test=login_email]")
+    assert property(page, email_input, "type") == {:ok, "email"}
   end
 
   test "gets element attributes as map", %{page: page} do
-    SpeedTest.goto(page, @dummy_site)
+    goto(page, "/")
 
-    {:ok, email_input} = page |> SpeedTest.get("[data-test=login_email]")
-    {:ok, attributes} = page |> SpeedTest.attributes(email_input)
+    {:ok, email_input} = page |> get("[data-test=login_email]")
+    {:ok, attributes} = page |> attributes(email_input)
     assert attributes == %{"data-test" => "login_email", "name" => "test", "type" => "email"}
   end
 
   test "gets a single attribute for an element", %{page: page} do
-    SpeedTest.goto(page, @dummy_site)
+    goto(page, "/")
 
-    {:ok, email_input} = page |> SpeedTest.get("[data-test=login_email]")
-    {:ok, attribute} = page |> SpeedTest.attribute(email_input, "name")
+    {:ok, email_input} = page |> get("[data-test=login_email]")
+    {:ok, attribute} = page |> attribute(email_input, "name")
     assert attribute == "test"
   end
 
   test "clicks on elements", %{page: page} do
-    SpeedTest.goto(page, @dummy_site)
+    goto(page, "/")
 
-    {:ok, submit_button} = page |> SpeedTest.get("button")
-    :ok = page |> SpeedTest.click(submit_button)
+    {:ok, submit_button} = page |> get("button")
+    :ok = page |> click(submit_button)
 
-    {:ok, test_output} = page |> SpeedTest.get("#test-output")
+    {:ok, test_output} = page |> get("#test-output")
 
-    assert SpeedTest.property(page, test_output, "innerHTML") == "Dummy Text"
+    assert property(page, test_output, "innerHTML") == {:ok, "Dummy Text"}
   end
 end

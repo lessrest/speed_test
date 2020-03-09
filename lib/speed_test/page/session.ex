@@ -8,7 +8,7 @@ defmodule SpeedTest.Page.Session do
 
   alias ChromeRemoteInterface.{HTTP, PageSession, RPC, Server}
   alias SpeedTest.Page.Registry
-  alias SpeedTest.Retry
+  alias SpeedTest.{Cookie, Retry}
 
   @chrome_server %Server{host: "localhost", port: 1330}
   @timeout :timer.seconds(30)
@@ -101,7 +101,7 @@ defmodule SpeedTest.Page.Session do
     with {:ok, %{"id" => _id, "result" => %{"data" => data}}} <-
            RPC.Page.printToPDF(pid, params, options),
          {:ok, decoded} <- Base.decode64(data) do
-      {:reply, decoded, state}
+      {:reply, {:ok, decoded}, state}
     end
   end
 
@@ -121,7 +121,7 @@ defmodule SpeedTest.Page.Session do
     with {:ok, %{"id" => _id, "result" => %{"data" => data}}} <-
            RPC.Page.captureScreenshot(pid, params, options),
          {:ok, decoded} <- Base.decode64(data) do
-      {:reply, decoded, state}
+      {:reply, {:ok, decoded}, state}
     end
   end
 
@@ -251,10 +251,10 @@ defmodule SpeedTest.Page.Session do
            ),
          %{"value" => %{"value" => value}} <-
            Enum.find(properties, &(&1["name"] == property)) do
-      {:reply, value, state}
+      {:reply, {:ok, value}, state}
     else
       nil ->
-        {:reply, :notfound, state}
+        {:reply, {:error, :notfound}, state}
     end
   end
 
@@ -328,25 +328,6 @@ defmodule SpeedTest.Page.Session do
   end
 
   @impl true
-  def handle_call({:wait_for_load, %{}, options}, _from, %{pid: pid} = state) do
-    load_event = "Page.loadEventFired"
-
-    with :ok <- PageSession.subscribe(pid, load_event, options) do
-      receive do
-        {:chrome_remote_interface, ^load_event, _result} ->
-          :ok = PageSession.unsubscribe(pid, load_event)
-          {:reply, :ok, state}
-      after
-        @timeout ->
-          {:reply, {:error, :timeout}, state}
-      end
-    end
-  end
-
-  @doc ~S"""
-
-  """
-  @impl true
   def handle_call({:set_cookies, %{cookies: cookies}, options}, _from, %{pid: pid} = state) do
     with {:ok, _result} <-
            RPC.Network.setCookies(
@@ -357,6 +338,28 @@ defmodule SpeedTest.Page.Session do
              options
            ) do
       {:reply, :ok, state}
+    end
+  end
+
+  def handle_call({:get_cookie, name, options}, _from, %{pid: pid} = state) do
+    with {:ok, %{"result" => %{"cookies" => cookies}}} <-
+           RPC.Network.getCookies(
+             pid,
+             %{},
+             options
+           ),
+         cookie <- Enum.find(cookies, &(&1["name"] == name)) do
+      {:reply,
+       %Cookie{
+         domain: cookie["domain"],
+         expires: cookie["expires"],
+         http_only: cookie["httpOnly"],
+         name: cookie["name"],
+         path: cookie["path"],
+         same_site: cookie["sameSite"],
+         secure: cookie["secure"],
+         value: cookie["value"]
+       }, state}
     end
   end
 
@@ -402,7 +405,7 @@ defmodule SpeedTest.Page.Session do
            end)
 
          case not is_nil(found?) do
-           true -> {:ok, {:ok, found?}}
+           true -> {:ok, :ok}
            _ -> {:error, :notfound}
          end
        end},

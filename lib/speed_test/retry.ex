@@ -6,7 +6,7 @@ defmodule SpeedTest.Retry do
             interval: 100,
             attempts: 0
 
-  @spec calc_max(SpeedTest.Retry.t()) :: integer
+  @spec calc_max(Retry.t()) :: integer
   @doc ~S"""
   Calculates the max number of interations to
   execute the retry on.

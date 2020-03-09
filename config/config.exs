@@ -19,4 +19,6 @@ config :chroxy, Chroxy.ChromeServer,
   crash_dumps_dir: System.get_env("CHROME_CHROME_SERVER_CRASH_DUMPS_DIR") || "/tmp",
   verbose_logging: 0
 
+config :speed_test, base_url: "http://localhost:8081"
+
 import_config "#{Mix.env()}.exs"

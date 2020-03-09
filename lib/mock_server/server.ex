@@ -25,18 +25,27 @@ defmodule Test.Support.MockServer do
           <p id="test-output"></p>
           <p id="text-output"></p>
 
-          <script>
-            const input = document.querySelector("input");
-            const button = document.querySelector("button");
-            const complexOutput = document.getElementById("text-output");
-            const output = document.getElementById("test-output");
-
-            button.addEventListener("click", () => {
-              output.innerHTML = "Dummy Text";
-            });
-          </script>
+          <script src="/app.js"></script>
         </body>
       </html>
+      """
+    )
+  end
+
+  get "/app.js" do
+    conn
+    |> put_resp_content_type("application/javascript")
+    |> send_resp(
+      200,
+      ~S"""
+      const input = document.querySelector("input");
+      const button = document.querySelector("button");
+      const complexOutput = document.getElementById("text-output");
+      const output = document.getElementById("test-output");
+
+      button.addEventListener("click", () => {
+        output.innerHTML = "Dummy Text";
+      });
       """
     )
   end
