@@ -1,6 +1,10 @@
 defmodule SpeedTest.Retry do
   @moduledoc """
   Wrapper around retries and calculating how many retries to run.
+
+  ### Examples
+      iex> %SpeedTest.Retry{timeout: :timer.seconds(2)}
+      iex> %SpeedTest.Retry{timeout: :timer.seconds(10), interval: :timer.seconds(1)}
   """
   defstruct timeout: :timer.seconds(3),
             interval: 100,

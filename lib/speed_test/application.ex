@@ -11,9 +11,11 @@ defmodule SpeedTest.Application do
       {SpeedTest.Page.Supervisor, name: PageSupervisor}
     ]
 
+    env = System.get_env("SPEED_TEST_MOCKS")
+
     children =
       case Mix.env() do
-        :test ->
+        :test when env == "true" ->
           [
             {Plug.Cowboy, scheme: :http, plug: Test.Support.MockServer, options: [port: 8081]}
             | children
