@@ -5,7 +5,7 @@ defmodule SpeedTest.MixProject do
     [
       app: :speed_test,
       description: "Package that helps automate browser testing, similar to puppeteer.",
-      version: "0.1.0",
+      version: "0.1.1",
       elixir: "~> 1.9",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
