@@ -405,7 +405,7 @@ defmodule SpeedTest.Page.Session do
            end)
 
          case not is_nil(found?) do
-           true -> {:ok, :ok}
+           true -> {:ok, {:ok, found?}}
            _ -> {:error, :notfound}
          end
        end},

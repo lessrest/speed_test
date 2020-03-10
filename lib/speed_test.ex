@@ -440,15 +440,14 @@ defmodule SpeedTest do
 
       iex> page = SpeedTest.launch()
       iex> :ok = page |> SpeedTest.goto("/")
-      iex> page |> SpeedTest.intercept_request("GET", "/app.js")
-      :ok
+      iex> {:ok, %{"request" => %{"url" => "http://localhost:8081/app.js"}, "response" => %{"status" => 200}}} = page |> SpeedTest.intercept_request("GET", "/app.js")
   """
   @spec intercept_request(
           pid,
           binary,
           binary,
           options()
-        ) :: :ok | {:error, :timeout}
+        ) :: {:ok, map()} | {:error, :timeout}
   def intercept_request(server, method, url, options \\ []) do
     GenServer.call(
       server,
