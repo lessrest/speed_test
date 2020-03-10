@@ -399,9 +399,9 @@ defmodule SpeedTest.Page.Session do
          found? =
            network_requests
            |> Map.values()
-           |> Enum.find(fn %{"request" => request} ->
+           |> Enum.find(fn %{"request" => request, "response" => response} ->
              request["method"] == method and
-               String.contains?(request["url"], "#{@base_url}#{url}")
+               String.contains?(request["url"], "#{@base_url}#{url}") and response != %{}
            end)
 
          case not is_nil(found?) do
