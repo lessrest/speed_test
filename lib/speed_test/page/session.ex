@@ -168,7 +168,7 @@ defmodule SpeedTest.Page.Session do
       {:retry, Map.put(params, :from, from),
        fn %{selector: selector}, %{pid: pid} ->
          with {:ok, %{"result" => %{"root" => %{"nodeId" => root_node}}}} <-
-                RPC.DOM.getDocument(pid, options),
+                RPC.DOM.getDocument(pid, %{}, options),
               {:ok, %{"result" => %{"nodeId" => id}}} <-
                 RPC.DOM.querySelector(
                   pid,
@@ -428,7 +428,13 @@ defmodule SpeedTest.Page.Session do
         %{main_frame: main_frame} = state
       )
       when main_frame == frame_id do
-    {:noreply, put_in(state, [:network_requests, request_id, "response"], response)}
+    case state.network_requests[request_id] do
+      nil ->
+        {:noreply, state}
+
+      _ ->
+        {:noreply, put_in(state, [:network_requests, request_id, "response"], response)}
+    end
   end
 
   def handle_info({:chrome_remote_interface, "Network.responseReceived", _params}, state),

@@ -26,10 +26,10 @@ defmodule SpeedTest.MixProject do
   defp deps do
     [
       {:elixir_uuid, "~> 1.2"},
-      {:chroxy, "~> 0.6.3"},
+      {:chroxy, "~> 0.7"},
       {:chrome_remote_interface, "~> 0.3.0"},
-      {:plug_cowboy, "~> 2.0.1"},
-      {:plug, "~> 1.8.0"},
+      {:plug_cowboy, "~> 2.2"},
+      {:plug, "~> 1.10"},
       {:ex_doc, ">= 0.0.0", only: :dev, runtime: false},
       {:credo, "~> 1.2", only: [:dev, :test], runtime: false}
     ]

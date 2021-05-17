@@ -146,7 +146,7 @@ defmodule SpeedTest do
       true
 
   """
-  @spec get(pid, node_id(), options()) :: {:ok, node_id} | {:error, :timeout} | {:error, any()}
+  @spec get(pid, binary(), options()) :: {:ok, node_id} | {:error, :timeout} | {:error, any()}
   def get(server, selector, options \\ []) do
     GenServer.call(
       server,
