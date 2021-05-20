@@ -10,7 +10,6 @@ defmodule SpeedTest.Page.Session do
   alias SpeedTest.Page.Registry
   alias SpeedTest.{Cookie, Retry}
 
-  @chrome_server %Server{host: "localhost", port: 1330}
   @timeout :timer.seconds(30)
   @base_url Application.get_env(:speed_test, :base_url) || ""
 
@@ -23,7 +22,10 @@ defmodule SpeedTest.Page.Session do
     # Register the process globally
     {:ok, _registry} = Registry.register(page)
 
-    server = state[:server] || @chrome_server
+    server = state[:server] || %Server{
+      host: "localhost",
+      port: Keyword.fetch!(Application.fetch_env!(:chroxy, Chroxy.Endpoint), :port)
+    }
     pid = launch(server)
     {:ok, _data} = RPC.Page.enable(pid)
     {:ok, _data} = RPC.Runtime.enable(pid)
